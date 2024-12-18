@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TypeShip Battle</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/jpg" href="/images-assets/mainship.jpg">
+    <style>
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: particleFade 1s forwards;
+        }
+
+        @keyframes particleFade {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0); }
+        }
+
+        .explosion {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            animation: explode 0.5s forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+
+        .shield-effect {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid #00ff00;
+            animation: shieldPulse 1s infinite;
+        }
+
+        @keyframes shieldPulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 0.4; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        .power-up-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 2px solid #33ff33;
+            color: #33ff33;
+            font-family: 'Press Start 2P';
+            font-size: 12px;
+        }
+
+        .damage-flash {
+            animation: flashRed 0.2s;
+        }
+
+        @keyframes flashRed {
+            0% { background: rgba(255, 0, 0, 0); }
+            50% { background: rgba(255, 0, 0, 0.3); }
+            100% { background: rgba(255, 0, 0, 0); }
+        }
+
+        .score-popup {
+            position: absolute;
+            color: #ffff00;
+            font-family: 'Press Start 2P';
+            font-size: 16px;
+            animation: scoreFloat 1s forwards;
+        }
+
+        @keyframes scoreFloat {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-50px); opacity: 0; }
+        }
+
+        .debug-panel {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            color: #33ff33;
+            font-family: 'VT323';
+            font-size: 14px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="startScreen" class="screen">
+            <div class="background-animations">
+                <div class="missile-animation missile-1"></div>
+                <div class="missile-animation missile-2"></div>
+                <div class="missile-animation missile-3"></div>
+                
+                <div class="background-ship ship-1">
+                    <img src="/images-assets/enemyship.png" alt="Enemy Ship">
+                </div>
+                <div class="background-ship ship-2">
+                    <img src="/images-assets/mothership.png" alt="Mother Ship">
+                </div>
+                <div class="background-ship ship-3">
+                    <img src="/images-assets/enemyship.png" alt="Enemy Ship">
+                </div>
+            </div>
+
+            <div class="content main-menu">
+                <div class="title-container">
+                    <h1 class="game-title">TypeShip</h1>
+                </div>
+                
+                <div class="start-prompt blink">
+                    <span class="key-prompt">PRESS</span>
+                    <span class="space-key">SPACE</span>
+                    <span class="key-prompt">TO START</span>
+                </div>
+
+                <div class="menu-buttons">
+                    <button class="menu-button" onclick="toggleInstructions()">
+                        <span class="button-icon">ℹ️</span>
+                        HOW TO PLAY
+                    </button>
+                </div>
+
+                <div id="instructions" class="instructions-container hidden">
+                </div>
+            </div>
+        </div>
+        <div id="debugPanel" class="debug-panel"></div>
+    </div>
+
+    <script>
+        const gameState = {
+            score: 0,
+            health: 100,
+            shield: 0,
+            powerUps: [],
+            enemies: [],
+            particles: [],
+            isPaused: false,
+            debug: false
+        };
+
+        class Particle {
+            constructor(x, y, color, velocity) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.velocity = velocity;
+                this.life = 1;
+                this.decay = 0.02;
+            }
+
+            update() {
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.life -= this.decay;
+                return this.life > 0;
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${this.color}, ${this.life})`;
+                ctx.fill();
+            }
+        }
+
+        class PowerUp {
+            constructor(type, duration) {
+                this.type = type;
+                this.duration = duration;
+                this.active = false;
+                this.timeLeft = 0;
+            }
+
+            activate() {
+                this.active = true;
+                this.timeLeft = this.duration;
+                this.applyEffect();
+            }
+
+            update(dt) {
+                if (this.active) {
+                    this.timeLeft -= dt;
+                    if (this.timeLeft <= 0) {
+                        this.deactivate();
+                    }
+                }
+            }
+
+            applyEffect() {
+                switch(this.type) {
+                    case 'shield':
+                        gameState.shield = 100;
+                        break;
+                    case 'rapidFire':
+                        gameState.fireRate *= 2;
+                        break;
+                    case 'multiShot':
+                        gameState.multiShot = true;
+                        break;
+                }
+            }
+
+            deactivate() {
+                this.active = false;
+                this.removeEffect();
+            }
+
+            removeEffect() {
+                switch(this.type) {
+                    case 'shield':
+                        gameState.shield = 0;
+                        break;
+                    case 'rapidFire':
+                        gameState.fireRate /= 2;
+                        break;
+                    case 'multiShot':
+                        gameState.multiShot = false;
+                        break;
+                }
+            }
+        }
+
+        const Debug = {
+            log: function(message) {
+                if (gameState.debug) {
+                    const panel = document.getElementById('debugPanel');
+                    panel.style.display = 'block';
+                    panel.innerHTML += `<div>${message}</div>`;
+                    if (panel.children.length > 5) {
+                        panel.removeChild(panel.firstChild);
+                    }
+                }
+            },
+
+            toggleDisplay: function() {
+                gameState.debug = !gameState.debug;
+                document.getElementById('debugPanel').style.display = 
+                    gameState.debug ? 'block' : 'none';
+            }
+        };
+
+        const ScoreManager = {
+            addScore: function(points, x, y) {
+                gameState.score += points;
+                this.showScorePopup(points, x, y);
+                this.checkHighScore();
+            },
+
+            showScorePopup: function(points, x, y) {
+                const popup = document.createElement('div');
+                popup.className = 'score-popup';
+                popup.textContent = `+${points}`;
+                popup.style.left = `${x}px`;
+                popup.style.top = `${y}px`;
+                document.body.appendChild(popup);
+                setTimeout(() => popup.remove(), 1000);
+            },
+
+            checkHighScore: function() {
+                const highScore = localStorage.getItem('highScore') || 0;
+                if (gameState.score > highScore) {
+                    localStorage.setItem('highScore', gameState.score);
+                }
+            }
+        };
+
+        const KeyboardManager = {
+            keys: {},
+            
+            init: function() {
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.key] = true;
+                    if (e.key === '`') Debug.toggleDisplay();
+                });
+                
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.key] = false;
+                });
+            },
+
+            isPressed: function(key) {
+                return !!this.keys[key];
+            }
+        };
+
+        KeyboardManager.init();
+
+        const AudioManager = {
+            sounds: {},
+            musicVolume: 0.7,
+            sfxVolume: 1.0,
+
+            init: function() {
+                this.sounds = {
+                    shoot: new Audio('/sounds/shoot.wav'),
+                    explosion: new Audio('/sounds/explosion.wav'),
+                    powerup: new Audio('/sounds/powerup.wav'),
+                    damage: new Audio('/sounds/damage.wav'),
+                    gameOver: new Audio('/sounds/gameover.wav'),
+                    background: new Audio('/sounds/background.mp3')
+                };
+
+                this.sounds.background.loop = true;
+            },
+
+            play: function(soundName) {
+                if (this.sounds[soundName]) {
+                    const sound = this.sounds[soundName].cloneNode();
+                    sound.volume = soundName === 'background' ? this.musicVolume : this.sfxVolume;
+                    sound.play().catch(err => console.log('Audio play failed:', err));
+                }
+            },
+
+            setVolume: function(type, value) {
+                if (type === 'music') {
+                    this.musicVolume = value;
+                    this.sounds.background.volume = value;
+                } else {
+                    this.sfxVolume = value;
+                }
+            }
+        };
+
+        const EffectsManager = {
+            effects: [],
+
+            createExplosion: function(x, y) {
+                const colors = ['#ff0000', '#ff7700', '#ffff00'];
+                for (let i = 0; i < 20; i++) {
+                    const angle = (Math.PI * 2 / 20) * i;
+                    const velocity = {
+                        x: Math.cos(angle) * 5,
+                        y: Math.sin(angle) * 5
+                    };
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    this.effects.push(new Particle(x, y, color, velocity));
+                }
+            },
+
+            createShieldEffect: function(x, y, radius) {
+                const shield = document.createElement('div');
+                shield.className = 'shield-effect';
+                shield.style.left = `${x - radius}px`;
+                shield.style.top = `${y - radius}px`;
+                shield.style.width = `${radius * 2}px`;
+                shield.style.height = `${radius * 2}px`;
+                document.body.appendChild(shield);
+                setTimeout(() => shield.remove(), 1000);
+            },
+
+            update: function() {
+                this.effects = this.effects.filter(effect => effect.update());
+            },
+
+            draw: function(ctx) {
+                this.effects.forEach(effect => effect.draw(ctx));
+            }
+        };
+
+        const AchievementSystem = {
+            achievements: {
+                firstKill: { name: "First Blood", description: "Destroy your first enemy", unlocked: false },
+                sharpshooter: { name: "Sharpshooter", description: "100% accuracy for 10 shots", unlocked: false },
+                survivor: { name: "Survivor", description: "Survive for 5 minutes", unlocked: false },
+                masterTypist: { name: "Master Typist", description: "Type 50 words without error", unlocked: false }
+            },
+
+            unlock: function(achievementId) {
+                if (this.achievements[achievementId] && !this.achievements[achievementId].unlocked) {
+                    this.achievements[achievementId].unlocked = true;
+                    this.save();
+                    this.showNotification(this.achievements[achievementId].name);
+                }
+            },
+
+            showNotification: function(achievementName) {
+                const notification = document.createElement('div');
+                notification.className = 'achievement-notification';
+                notification.innerHTML = `
+                    <span class="achievement-icon">🏆</span>
+                    <span class="achievement-text">Achievement Unlocked: ${achievementName}</span>
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            },
+
+            save: function() {
+                localStorage.setItem('achievements', JSON.stringify(this.achievements));
+            },
+
+            load: function() {
+                const saved = localStorage.getItem('achievements');
+                if (saved) {
+                    this.achievements = JSON.parse(saved);
+                }
+            }
+        };
+
+        const PerformanceMonitor = {
+            fps: 0,
+            frameCount: 0,
+            lastTime: performance.now(),
+            updateInterval: 1000,
+
+            update: function() {
+                this.frameCount++;
+                const currentTime = performance.now();
+                const elapsed = currentTime - this.lastTime;
+
+                if (elapsed >= this.updateInterval) {
+                    this.fps = Math.round((this.frameCount * 1000) / elapsed);
+                    this.frameCount = 0;
+                    this.lastTime = currentTime;
+                    if (gameState.debug) {
+                        Debug.log(`FPS: ${this.fps}`);
+                    }
+                }
+            }
+        };
+
+        const StatsTracker = {
+            stats: {
+                totalScore: 0,
+                enemiesDestroyed: 0,
+                shotsFired: 0,
+                shotsHit: 0,
+                powerupsCollected: 0,
+                timePlayed: 0,
+                gamesPlayed: 0
+            },
+
+            update: function(statName, value) {
+                if (this.stats.hasOwnProperty(statName)) {
+                    this.stats[statName] += value;
+                    this.save();
+                }
+            },
+
+            getAccuracy: function() {
+                return this.stats.shotsFired > 0 
+                    ? Math.round((this.stats.shotsHit / this.stats.shotsFired) * 100) 
+                    : 0;
+            },
+
+            save: function() {
+                localStorage.setItem('gameStats', JSON.stringify(this.stats));
+            },
+
+            load: function() {
+                const saved = localStorage.getItem('gameStats');
+                if (saved) {
+                    this.stats = JSON.parse(saved);
+                }
+            }
+        };
+
+        window.addEventListener('load', () => {
+            AudioManager.init();
+            AchievementSystem.load();
+            StatsTracker.load();
+            
+            function gameLoop() {
+                PerformanceMonitor.update();
+                EffectsManager.update();
+                requestAnimationFrame(gameLoop);
+            }
+            gameLoop();
+        });
+
+    </script>
+</body>
+</html> 

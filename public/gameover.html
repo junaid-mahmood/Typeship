@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Game Over - TypeShip Battle</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+
+    <style>
+
+        * {
+
+            margin: 0;
+
+            padding: 0;
+
+            box-sizing: border-box;
+
+        }
+
+
+
+        body {
+
+            background: url('/images-assets/game.jpg') no-repeat center center fixed;
+
+            background-size: cover;
+
+            font-family: 'Press Start 2P', cursive;
+
+            color: #fff;
+
+            height: 100vh;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            overflow: hidden;
+
+        }
+
+
+
+        .overlay {
+
+            position: fixed;
+
+            top: 0;
+
+            left: 0;
+
+            width: 100%;
+
+            height: 100%;
+
+            background: rgba(0, 0, 0, 0.7);
+
+        }
+
+
+
+        .container {
+
+            position: relative;
+
+            z-index: 1;
+
+            text-align: center;
+
+            padding: 2rem;
+
+            max-width: 800px;
+
+            width: 90%;
+
+        }
+
+
+
+        .game-over {
+
+            font-size: 4em;
+
+            color: #FF4444;
+
+            margin-bottom: 2rem;
+
+            text-transform: uppercase;
+
+            animation: pulse 2s infinite;
+
+        }
+
+
+
+        .score-container {
+
+            background: rgba(0, 0, 0, 0.8);
+
+            padding: 2rem;
+
+            border-radius: 10px;
+
+            margin: 2rem 0;
+
+        }
+
+
+
+        .score-grid {
+
+            display: grid;
+
+            grid-template-columns: repeat(2, 1fr);
+
+            gap: 2rem;
+
+            margin: 2rem 0;
+
+        }
+
+
+
+        .score-item {
+
+            background: rgba(255, 255, 255, 0.1);
+
+            padding: 1.5rem;
+
+            border-radius: 8px;
+
+            transition: transform 0.3s ease;
+
+        }
+
+
+
+        .score-item:hover {
+
+            transform: translateY(-5px);
+
+        }
+
+
+
+        .score-label {
+
+            color: #FFD700;
+
+            font-size: 0.8em;
+
+            margin-bottom: 1rem;
+
+        }
+
+
+
+        .score-value {
+
+            font-size: 1.5em;
+
+            color: #fff;
+
+        }
+
+
+
+        .final-score {
+
+            font-size: 2em;
+
+            color: #FFD700;
+
+            margin: 1rem 0;
+
+        }
+
+
+
+        .accuracy-bar {
+
+            width: 100%;
+
+            height: 30px;
+
+            background: rgba(255, 255, 255, 0.1);
+
+            border-radius: 15px;
+
+            overflow: hidden;
+
+            margin: 1rem 0;
+
+        }
+
+
+
+        .accuracy-fill {
+
+            height: 100%;
+
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+
+            transition: width 1s ease-out;
+
+        }
+
+
+
+        .buttons {
+
+            margin-top: 2rem;
+
+        }
+
+
+
+        .button {
+
+            background: transparent;
+
+            border: 2px solid #FFD700;
+
+            color: #FFD700;
+
+            padding: 1rem 2rem;
+
+            font-family: 'Press Start 2P', cursive;
+
+            font-size: 1em;
+
+            margin: 0 1rem;
+
+            cursor: pointer;
+
+            transition: all 0.3s ease;
+
+        }
+
+
+
+        .button:hover {
+
+            background: #FFD700;
+
+            color: #000;
+
+        }
+
+
+
+        @keyframes pulse {
+
+            0% { transform: scale(1); }
+
+            50% { transform: scale(1.05); }
+
+            100% { transform: scale(1); }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="overlay"></div>
+
+    <div class="container">
+
+        <h1 class="game-over">Game Over</h1>
+
+        
+
+        <div class="score-container">
+
+            <div class="final-score">
+
+                Final Score: <span id="finalScore">0</span>
+
+            </div>
+
+            
+
+            <div class="score-grid">
+
+                <div class="score-item">
+
+                    <div class="score-label">SHIPS DESTROYED</div>
+
+                    <div class="score-value" id="shipsDestroyed">0</div>
+
+                </div>
+
+                <div class="score-item">
+
+                    <div class="score-label">LEVEL REACHED</div>
+
+                    <div class="score-value" id="levelReached">0</div>
+
+                </div>
+
+            </div>
+
+            
+
+            <div class="score-item">
+
+                <div class="score-label">TYPING ACCURACY</div>
+
+                <div class="accuracy-bar">
+
+                    <div class="accuracy-fill" id="accuracyFill"></div>
+
+                </div>
+
+                <div class="score-value" id="accuracyValue">100%</div>
+
+            </div>
+
+            
+
+            <div class="score-item">
+
+                <div class="score-label">HIGH SCORE</div>
+
+                <div class="score-value" id="highScore">0</div>
+
+            </div>
+
+        </div>
+
+        
+
+        <div class="buttons">
+
+            <button class="button" onclick="restartGame()">Play Again</button>
+
+            <button class="button" onclick="returnToMenu()">Main Menu</button>
+
+        </div>
+
+    </div>
+
+
+
+    <script>
+
+        function restartGame() {
+
+            window.location.href = '/';
+
+        }
+
+
+
+        function returnToMenu() {
+
+            window.location.href = '/';
+
+        }
+
+
+
+        window.onload = function() {
+
+            const gameStats = JSON.parse(localStorage.getItem('gameStats') || '{}');
+
+            document.getElementById('finalScore').textContent = gameStats.score || 0;
+
+            document.getElementById('shipsDestroyed').textContent = gameStats.shipsDestroyed || 0;
+
+            document.getElementById('levelReached').textContent = gameStats.level || 1;
+
+            document.getElementById('accuracyValue').textContent = `${gameStats.accuracy || 100}%`;
+
+            document.getElementById('accuracyFill').style.width = `${gameStats.accuracy || 100}%`;
+
+            document.getElementById('highScore').textContent = gameStats.highScore || 0;
+
+        };
+
+    </script>
+
+</body>
+
+</html> 

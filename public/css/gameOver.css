@@ -1,0 +1,295 @@
+.game-over-screen {
+
+    position: fixed;
+
+    top: 0;
+
+    left: 0;
+
+    width: 100%;
+
+    height: 100%;
+
+    background: rgba(0, 0, 0, 0.9);
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    z-index: 1000;
+
+    animation: fadeIn 0.5s ease-out;
+
+}
+
+
+
+.game-over-content {
+
+    background: rgba(20, 20, 20, 0.95);
+
+    padding: 40px;
+
+    border-radius: 15px;
+
+    border: 2px solid #FFD700;
+
+    max-width: 600px;
+
+    width: 90%;
+
+    position: relative;
+
+    overflow: hidden;
+
+    animation: slideIn 0.5s ease-out;
+
+}
+
+
+
+.game-over-title {
+
+    font-family: 'Press Start 2P', cursive;
+
+    font-size: 48px;
+
+    color: #FF4444;
+
+    margin-bottom: 30px;
+
+    text-transform: uppercase;
+
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+
+}
+
+
+
+.stats-grid {
+
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 20px;
+
+    margin: 30px 0;
+
+}
+
+
+
+.stat-card {
+
+    background: rgba(255, 255, 255, 0.1);
+
+    padding: 20px;
+
+    border-radius: 10px;
+
+    text-align: center;
+
+    transition: transform 0.3s ease;
+
+}
+
+
+
+.stat-card:hover {
+
+    transform: translateY(-5px);
+
+}
+
+
+
+.stat-label {
+
+    font-family: 'Press Start 2P', cursive;
+
+    font-size: 14px;
+
+    color: #FFD700;
+
+    margin-bottom: 10px;
+
+}
+
+
+
+.stat-value {
+
+    font-family: 'Press Start 2P', cursive;
+
+    font-size: 24px;
+
+    color: #FFFFFF;
+
+}
+
+
+
+.accuracy-meter {
+
+    width: 100%;
+
+    height: 20px;
+
+    background: rgba(255, 255, 255, 0.1);
+
+    border-radius: 10px;
+
+    margin: 20px 0;
+
+    overflow: hidden;
+
+}
+
+
+
+.accuracy-fill {
+
+    height: 100%;
+
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+
+    transition: width 1s ease-out;
+
+}
+
+
+
+.game-over-buttons {
+
+    display: flex;
+
+    justify-content: center;
+
+    gap: 20px;
+
+    margin-top: 30px;
+
+}
+
+
+
+.game-over-button {
+
+    font-family: 'Press Start 2P', cursive;
+
+    font-size: 16px;
+
+    padding: 15px 30px;
+
+    background: transparent;
+
+    border: 2px solid #FFD700;
+
+    color: #FFD700;
+
+    cursor: pointer;
+
+    transition: all 0.3s ease;
+
+    text-transform: uppercase;
+
+}
+
+
+
+.game-over-button:hover {
+
+    background: #FFD700;
+
+    color: #000;
+
+}
+
+
+
+@keyframes fadeIn {
+
+    from { opacity: 0; }
+
+    to { opacity: 1; }
+
+}
+
+
+
+@keyframes slideIn {
+
+    from {
+
+        transform: translateY(-20px);
+
+        opacity: 0;
+
+    }
+
+    to {
+
+        transform: translateY(0);
+
+        opacity: 1;
+
+    }
+
+}
+
+
+
+.score-highlight {
+
+    position: relative;
+
+    padding: 20px;
+
+    background: rgba(255, 215, 0, 0.1);
+
+    border-radius: 10px;
+
+    margin: 20px 0;
+
+}
+
+
+
+.score-highlight::before {
+
+    content: '🏆';
+
+    position: absolute;
+
+    top: -15px;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    font-size: 30px;
+
+}
+
+
+
+.typing-stats {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
+    margin: 20px 0;
+
+    padding: 20px;
+
+    background: rgba(255, 255, 255, 0.05);
+
+    border-radius: 10px;
+
+} 
